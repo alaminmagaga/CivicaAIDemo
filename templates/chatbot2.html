@@ -1,0 +1,201 @@
+without speech to speech functionality
+
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Chatbot</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700,300' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.2/css/font-awesome.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        /* Loader CSS */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 15px;
+            height: 15px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spacer {
+            width: 10px; /* Adjust the width of tab space */
+            display: inline-block;
+        }
+
+        .speech-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .speech-button:hover {
+            background-color: #ff4c4c; /* Hover color */
+            color: white;
+        }
+
+    </style>
+
+      <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4QBSSC376R"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-4QBSSC376R');
+</script>  
+   
+</head>
+
+<body>
+    <div id="frame" class="w3-card-4 w3-round">
+     
+        <!-- Main Chat Content -->
+        <div class="content">
+
+            <div class="contact-profile">
+                <img id="profile-img" src="{{ url_for('static', filename='img/lawyer-icon.jpg') }}" class="online" alt="" />
+                <p>LegalBot</p>
+            
+                <a href="/" class="cancel-icon" title="Cancel" style="position: absolute; right: 20px;">
+                    <img src="{{ url_for('static', filename='back1.png') }}" alt="Cancel" width="10px">
+                </a>
+
+            </div>
+
+            <div class="messages">
+                <ul>
+                    <!-- Existing message list -->
+                </ul>
+            </div>
+            <div class="message-input">
+                <div class="wrap">
+                    <input type="text" id="inputMessage" class="input-message " placeholder="Ask your questions..." />
+                    <button class="submit" id="submitButton"><i class="fa fa-paper-plane" aria-hidden="true"></i></button>
+                    <button class="speech-button " id="speechButton" style="background-color: #f3f3f3;">🎙️</button> <!-- Add speech button -->
+                   
+                   
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            let isSpeechMode = false;
+            let recognition;
+
+            function scrollToBottom() {
+                $(".messages").stop().animate({ scrollTop: $(".messages")[0].scrollHeight }, 500);
+            }
+
+            function newMessage(message, isSpeechInput = false) {
+                if (message !== '') {
+                    $('<li class="sent"><img src="static/male.png" alt="" /><p>' + message + '</p></li>').appendTo($('.messages ul'));
+                    $("#inputMessage").val(null);
+                    scrollToBottom();
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '/legal_query',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ query: message }),
+                        beforeSend: function () {
+                            $('<li class="replies"><img src="static/img/lawyer-icon.jpg" alt="" /><p><span class="loader"></span></p></li>').appendTo($('.messages ul'));
+                            scrollToBottom();
+                        },
+                        success: function (data) {
+                            var response = data.result;
+                            $(".replies .loader").remove();
+                            animateText(response, 0);
+
+                            if (isSpeechInput) {
+                                speakResponse(response);
+                            }
+                        },
+                        error: function () {
+                            $(".replies .loader").remove();
+                            $('<li class="replies"><img src="static/img/lawyer-icon.jpg" alt="" /><p>Sorry, an error occurred!</p></li>').appendTo($('.messages ul'));
+                        }
+                    });
+                }
+            }
+
+            $("#submitButton").click(function () {
+                newMessage($("#inputMessage").val(), false);
+            });
+
+            $(window).on('keydown', function (e) {
+                if (e.which == 13) {
+                    newMessage($("#inputMessage").val(), false);
+                    return false;
+                }
+            });
+
+            function animateText(text, index) {
+                var formattedText = text.substring(0, index + 1).replace(/\n/g, '<br/>');
+                $(".replies p").last().html(formattedText);
+
+                if (index < text.length) {
+                    setTimeout(function () {
+                        animateText(text, index + 1);
+                        scrollToBottom();
+                    }, 20);
+                }
+            }
+
+            function speakResponse(responseText) {
+                var utterance = new SpeechSynthesisUtterance(responseText);
+                speechSynthesis.speak(utterance);
+            }
+
+            $("#speechButton").click(function () {
+                isSpeechMode = !isSpeechMode;
+
+                if (!recognition) {
+                    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                    recognition.onresult = function (event) {
+                        const speechResult = event.results[0][0].transcript;
+                        newMessage(speechResult, true);
+                    };
+                    recognition.onerror = function (event) {
+                        console.log('Speech recognition error:', event.error);
+                    };
+                }
+
+                if (isSpeechMode) {
+                    $("#speechButton").text('🎤');
+                    recognition.start();
+                } else {
+                    recognition.stop();
+                    $("#speechButton").text('🎙️');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1497 @@
+<script>
+    $(document).ready(function () {
+        $(".messages").animate({ scrollTop: $(document).height() }, "fast");
+
+        function newMessage() {
+            var message = $(".input-message").val().trim();
+            if (message !== '') {
+                $('<li class="sent"><img src="http://emilcarlsson.se/assets/mikeross.png" alt="" /><p>' + message + '</p></li>').appendTo($('.messages ul'));
+                $(".input-message").val(null);
+                $(".messages").animate({ scrollTop: $(document).height() }, "fast");
+
+                // AJAX request to Flask backend for response
+                $.ajax({
+                    type: 'POST',
+                    url: '/query',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ query: message }),
+                    success: function (data) {
+                        $('<li class="replies"><img src="http://emilcarlsson.se/assets/harveyspecter.png" alt="" /><p>' + data.result + '</p></li>').appendTo($('.messages ul'));
+                        $(".messages").animate({ scrollTop: $(document).height() }, "fast");
+                    },
+                    error: function (error) {
+                        console.log('Error:', error);
+                    }
+                });
+            }
+        };
+
+        $('.submit').click(function () {
+            newMessage();
+        });
+
+        $(window).on('keydown', function (e) {
+            if (e.which == 13) {
+                newMessage();
+                return false;
+            }
+        });
+    });
+</script>
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Speech Recognition and Chatbot Interaction</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Speech Recognition and Chatbot Interaction</h1>
+
+    <!-- Speech input form -->
+    <form id="speechForm">
+        <input type="submit" value="Speak">
+    </form>
+
+    <!-- Text input form -->
+    <form id="textInputForm" style="display: inline-block; margin-left: 20px;">
+        <label for="textInput">Enter your message:</label><br>
+        <input type="text" id="textInput" name="textInput"><br><br>
+        <input type="submit" value="Send">
+    </form>
+
+    <div id="responseArea"></div>
+
+    <script>
+        $(document).ready(function() {
+            function startListening() {
+                var formData = new FormData($('#speechForm')[0]);
+
+                $.ajax({
+                    url: '/process_speech',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#responseArea').text('Speech Recognition Result: ' + response.converted_text);
+                        $('#responseArea').append('<br>Chatbot Response: ' + response.chatbot_response);
+                        startListening();  // Continue listening after each response
+                    },
+                    error: function(xhr, status, error) {
+                        $('#responseArea').text('An error occurred: ' + xhr.responseText);
+                        startListening();  // Continue listening even if an error occurs
+                    }
+                });
+            }
+
+            // Start listening on form submission
+            $('#speechForm').on('submit', function(e) {
+                e.preventDefault();
+                startListening();
+            });
+
+            // Handling text input form submission
+            $('#textInputForm').on('submit', function(e) {
+                e.preventDefault();
+
+                var userInput = $('#textInput').val().trim();
+                $('#textInput').val('');
+
+                $.ajax({
+                    url: '/process_text',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ text: userInput }),
+                    success: function(response) {
+                        $('#responseArea').text('Chatbot Response: ' + response.chatbot_response);
+                    },
+                    error: function(xhr, status, error) {
+                        $('#responseArea').text('An error occurred: ' + xhr.responseText);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+# prompt = ChatPromptTemplate.from_template("""
+# You are an AI lawyer specializing in Nigerian law, including the Nigerian Constitution and all relevant statutes. Your task is to provide accurate and thorough legal advice, opinions, and potential strategies to address the user's legal challenges. Always refer to the relevant sections of the law and provide a clear explanation of the legal context. Structure your responses in the following format for clarity and consistency:
+
+# 1. Legal Definition: Define the relevant legal concepts and terms applicable to the user's query, citing specific sections of the Nigerian Constitution or statutes (e.g., Criminal Code, Evidence Act).
+
+# 2. Analysis of the Situation: Analyze the user's scenario and explain how the defined legal principles apply to the facts provided. Highlight any defenses, exceptions, or mitigating factors that may influence the outcome.
+
+# 3. Questions of Fact: Identify and elaborate on any factual issues or questions that need to be resolved to determine liability or applicability of the law. These may include the intent, severity of actions, or contextual factors.
+
+# 4. Legal Consequences: Explain the potential legal outcomes, penalties, or remedies that may arise from the scenario, referencing relevant sections of the law where applicable.
+
+# 5. Recommendation: Provide a recommendation or advice on the best course of action, including non-legal options such as mediation or reporting to authorities if necessary.
+
+# 6. Summary: Summarize the response, reiterating key points and offering to assist further with any additional questions.
+
+
+
+# Context: {context}
+
+# Question: {input}
+
+# Based on the Nigerian Constitution and laws, here is your detailed legal analysis:
+# """)
+
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Etrain</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animate.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themify-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/flaticon.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/magnific-popup.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/slick.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.js"></script>
+    
+    
+    <script>
+$(document).ready(function() {
+    // Attach submit event handler to form
+    $('form').on('submit', function(event) {
+        event.preventDefault();
+        var prompt = $('input[name="prompt"]').val();
+        generateContent(prompt);
+    });
+
+    $('#download-words').on('click', function() {
+        downloadContent('words');
+    });
+
+    $('#download-docs').on('click', function() {
+        downloadContent('docs');
+    });
+
+    $('#download-pdf').on('click', function() {
+        downloadContent('pdf');
+    });
+
+    // Auto-scroll to the bottom function
+    function scrollToBottom() {
+        var resultContainer = document.getElementById('result');
+        resultContainer.scrollTop = resultContainer.scrollHeight;
+    }
+
+    // Updated function to call the backend with the user query and display the result
+    function generateContent(prompt) {
+        $.ajax({
+            type: 'POST',
+            url: '/civic_query',
+            contentType: 'application/json',
+            data: JSON.stringify({ query: prompt }),
+            beforeSend: function() {
+                $('#result').html('Generating content...');
+                $('.copy-icon').css('opacity', 0);
+                scrollToBottom(); // Scroll to bottom when loading starts
+            },
+            success: function(response) {
+                var content = response.response;  
+                $('#result').html(''); // Clear the container before displaying new content
+                animateText(content, 0);
+                showCopyIcon();
+            },
+            error: function(xhr, errmsg, err) {
+                console.log(errmsg);
+            }
+        });
+    }
+
+    // Animation function for displaying the response text
+    function animateText(text, index) {
+        if (index < text.length) {
+            $('#result').append(text[index]);
+            index++;
+            scrollToBottom(); // Scroll to the bottom as new content is added
+            setTimeout(function() {
+                animateText(text, index);
+            }, 10);
+        }
+    }
+
+    function showCopyIcon() {
+        $('.copy-icon').css('opacity', 1);
+    }
+
+    // Function to copy response text to clipboard
+    function copyContent() {
+        var text = $('#result').text().trim();
+        var tempInput = $('<input>');
+        $('body').append(tempInput);
+        tempInput.val(text).select();
+        document.execCommand('copy');
+        tempInput.remove();
+        $('.copy-icon').addClass('copied clicked');
+        setTimeout(function() {
+            $('.copy-icon').removeClass('clicked');
+        }, 500);
+    }
+
+    function downloadContent(format) {
+        var text = $('#result').text().trim();
+        var fileName = 'generated_content';
+
+        if (format === 'words') {
+            downloadTextFile(text, fileName + '.doc', 'application/msword');
+        } else if (format === 'docs') {
+            downloadTextFile(text, fileName + '.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        } else if (format === 'pdf') {
+            var element = document.getElementById('result');
+            html2pdf().from(element).save(fileName + '.pdf');
+        }
+    }
+
+    function downloadTextFile(content, fileName, contentType) {
+        var blob = new Blob([content], { type: contentType });
+
+        if (navigator.msSaveBlob) {
+            navigator.msSaveBlob(blob, fileName);
+        } else {
+            var link = document.createElement('a');
+            if (link.download !== undefined) {
+                var url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+    }
+});
+
+
+    </script>
+    
+</head>
+
+<body>
+    <!--::header part start::-->
+    <header class="main_menu home_menu">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-12">
+                    <nav class="navbar navbar-expand-lg navbar-light">
+                        <a class="navbar-brand" href="index.html">
+                             <!-- <img src="img/logo.png" alt="logo">  -->
+                             CivicaAI
+                            </a>
+                        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                            data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+
+                        <div class="collapse navbar-collapse main-menu-item justify-content-end"
+                            id="navbarSupportedContent">
+                            <ul class="navbar-nav align-items-center">
+                                <li class="nav-item active">
+                                    <a class="nav-link" href="index.html">Home</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="about.html">About</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="cource.html">Services</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="blog.html">Policies</a>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="blog.html" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Languages
+                                    </a>
+                                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                        <a class="dropdown-item" href="hausa.html">Hausa</a>
+                                        <a class="dropdown-item" href="elements.html">Yoruba</a>
+                                        <a class="dropdown-item" href="elements.html">Igbo</a>
+                                    </div>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="contact.html">Contact</a>
+                                </li>
+                                <li class="d-none d-lg-block">
+                                    <a class="btn_1" href="#">Contact Us</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- Header part end-->
+<br><br><br><br><br>
+    <!-- upcoming_event part start-->
+   <!-- Start of Main Section -->
+ 
+
+
+<div class="container w3-center" style="width: 80%;  display: flex; justify-content: center;">
+    <div class="content-container" style="width: 100%;">
+        <form method="post" style="text-align: center;">
+            <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+                <input type="text" class="w3-input" style="height: 40px; width: 70%; margin-right: 10px;" name="prompt" placeholder="Ask Your Questions" autocomplete="off">
+                <input type="submit" value="Submit" class="btn_1">
+            </div>
+        </form>
+
+        
+        <div class="result-container" style="text-align: center; margin-top: 20px;">
+            <div id="result" style="height: 300px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; width: 100%;"></div>
+            <span class="copy-icon" onclick="copyContent()" title="Copy to Clipboard" style="cursor: pointer; display: inline-block; margin-top: 10px;">&#128203;</span>
+        </div>
+        <div class="download-buttons" style="text-align: center; margin-top: 20px;">
+            <button id="download-words" class="btn_1" style="margin: 5px;">Download as .doc</button>
+            <button id="download-docs" class="btn_1" style="margin: 5px;">Download as .docx</button>
+            <button id="download-pdf" class="btn_1" style="margin: 5px;">Download as .pdf</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- jquery -->
+<script src="{{ url_for('static', filename='js/jquery-1.12.1.min.js') }}"></script>
+<!-- popper js -->
+<script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+<!-- bootstrap js -->
+<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+<!-- easing js -->
+<script src="{{ url_for('static', filename='js/jquery.magnific-popup.js') }}"></script>
+<!-- swiper js -->
+<script src="{{ url_for('static', filename='js/swiper.min.js') }}"></script>
+<!-- masonry js -->
+<script src="{{ url_for('static', filename='js/masonry.pkgd.js') }}"></script>
+<!-- owl carousel js -->
+<script src="{{ url_for('static', filename='js/owl.carousel.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/jquery.nice-select.min.js') }}"></script>
+<!-- slick js -->
+<script src="{{ url_for('static', filename='js/slick.min.js') }}"></script>
+<!-- counterup js -->
+<script src="{{ url_for('static', filename='js/jquery.counterup.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/waypoints.min.js') }}"></script>
+<!-- custom js -->
+<script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+
+</body>
+
+</html>
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>CivicaAI</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.js"></script>
+</head>
+
+<body>
+    <!-- Header part start -->
+    <header class="main_menu home_menu">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-12">
+                    <nav class="navbar navbar-expand-lg navbar-light">
+                        <a class="navbar-brand" href="#">CivicaAI</a>
+                        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                            data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse main-menu-item justify-content-end"
+                            id="navbarSupportedContent">
+                            <ul class="navbar-nav align-items-center">
+                                <li class="nav-item active"><a class="nav-link" href="#">Home</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#">About</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#">Services</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#">Policies</a></li>
+                                <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+                            </ul>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- Header part end -->
+
+    <!-- Content Section -->
+    <div class="container w3-center" style="width: 80%; display: flex; justify-content: center; margin-top: 50px;">
+        <div class="content-container" style="width: 100%;">
+            <!-- Form Section -->
+            <form method="post" style="text-align: center;">
+                <label class="w3-bold" style="font-size: 20px;">Ask Your Questions</label>
+                <div style="display: flex; justify-content: center; align-items: center;">
+                    <input type="text" class="w3-input" style="height: 40px; width: 70%; margin-right: 10px;" name="prompt" autocomplete="off">
+                    <input type="submit" value="Submit" class="btn btn-primary" style="padding: 10px;">
+                </div>
+            </form>
+
+            <!-- Result Section -->
+            <div class="result-container" style="text-align: center; margin-top: 20px;">
+                <div id="result" style="height: 300px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; width: 100%;"></div>
+                <span class="copy-icon" onclick="copyContent()" title="Copy to Clipboard" style="cursor: pointer; display: inline-block; margin-top: 10px;">&#128203; Copy</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Buttons Moved Outside -->
+    <div class="download-buttons" style="text-align: center; margin-top: 20px;">
+        <button id="download-words" class="btn btn-success" style="margin: 5px;">Download as .doc</button>
+        <button id="download-docs" class="btn btn-info" style="margin: 5px;">Download as .docx</button>
+        <button id="download-pdf" class="btn btn-danger" style="margin: 5px;">Download as .pdf</button>
+    </div>
+
+    <script>
+$(document).ready(function () {
+    // Attach submit event handler to form
+    $('form').on('submit', function (event) {
+        event.preventDefault();
+        var prompt = $('input[name="prompt"]').val();
+        generateContent(prompt);
+    });
+
+    // Attach click events to download buttons
+    $('#download-words').on('click', function () {
+        downloadContent('words');
+    });
+
+    $('#download-docs').on('click', function () {
+        downloadContent('docs');
+    });
+
+    $('#download-pdf').on('click', function () {
+        downloadContent('pdf');
+    });
+});
+
+// Function to generate content based on user input
+function generateContent(prompt) {
+    $.ajax({
+        type: 'POST',
+        url: '/civic_query',
+        contentType: 'application/json',
+        data: JSON.stringify({ query: prompt }),
+        beforeSend: function () {
+            $('#result').html('Generating content...');
+        },
+        success: function (response) {
+            var content = response.response;
+            $('#result').html(''); // Clear the container before displaying new content
+            animateText(content, 0);
+        },
+        error: function (xhr, errmsg, err) {
+            console.log(errmsg);
+        }
+    });
+}
+
+// Animation function for displaying the response text with HTML formatting
+function animateText(text, index) {
+    // Replace markdown-style bold (**text**) with HTML bold tags (<b>text</b>) and newlines (\n) with <br/>
+    text = text.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+    text = text.replace(/\n/g, "<br/>");
+
+    // Display HTML content properly instead of plain text
+    if (index < text.length) {
+        // Using .html() to render HTML tags correctly
+        $('#result').html($('#result').html() + text[index]);
+        index++;
+        setTimeout(function () {
+            animateText(text, index);
+        }, 10);
+    }
+}
+
+// Function to copy response text to clipboard
+function copyContent() {
+    var text = $('#result').html().trim(); // Use .html() instead of .text() to get formatted text
+    var tempInput = $('<textarea>'); // Use textarea to preserve formatting like newlines
+    $('body').append(tempInput);
+    tempInput.val(text).select();
+    document.execCommand('copy');
+    tempInput.remove();
+    alert("Content copied to clipboard!");
+}
+
+// Function to handle different download formats
+function downloadContent(format) {
+    var text = $('#result').html().trim(); // Use .html() to get formatted content
+    var fileName = 'generated_content';
+
+    if (format === 'words') {
+        downloadTextFile(text, fileName + '.doc', 'application/msword');
+    } else if (format === 'docs') {
+        downloadTextFile(text, fileName + '.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    } else if (format === 'pdf') {
+        var element = document.getElementById('result');
+        html2pdf().from(element).save(fileName + '.pdf');
+    }
+}
+
+// Function to download text files in different formats
+function downloadTextFile(content, fileName, contentType) {
+    var blob = new Blob([content], { type: contentType });
+
+    if (navigator.msSaveBlob) {
+        navigator.msSaveBlob(blob, fileName);
+    } else {
+        var link = document.createElement('a');
+        var url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+    </script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Etrain</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animate.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themify-icons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/flaticon.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/magnific-popup.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/slick.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.js"></script>
+    
+    
+    <script>
+
+$(document).ready(function() {
+    // Attach submit event handler to form
+    $('form').on('submit', function(event) {
+        event.preventDefault();
+        var prompt = $('input[name="prompt"]').val();
+        generateContent(prompt);
+    });
+
+    $('#download-words').on('click', function() {
+        downloadContent('words');
+    });
+
+    $('#download-docs').on('click', function() {
+        downloadContent('docs');
+    });
+
+    $('#download-pdf').on('click', function() {
+        downloadContent('pdf');
+    });
+
+    // Auto-scroll to the bottom function
+    function scrollToBottom() {
+        var resultContainer = document.getElementById('result');
+        resultContainer.scrollTop = resultContainer.scrollHeight;
+    }
+
+    // Updated function to call the backend with the user query and display the result
+    function generateContent(prompt) {
+        $.ajax({
+            type: 'POST',
+            url: '/civic_query',
+            contentType: 'application/json',
+            data: JSON.stringify({ query: prompt }),
+            beforeSend: function() {
+                $('#result').html('Generating content...');
+                $('.copy-icon').css('opacity', 0);
+                scrollToBottom(); // Scroll to bottom when loading starts
+            },
+            success: function(response) {
+                var content = response.response;  
+                $('#result').html(''); // Clear the container before displaying new content
+                animateText(content, 0);
+                showCopyIcon();
+            },
+            error: function(xhr, errmsg, err) {
+                console.log(errmsg);
+            }
+        });
+    }
+
+    // Animation function for displaying the response text without formatting tags
+    function animateText(text, index) {
+        // Remove markdown-style bold (**text**) without converting to <b> tags
+        text = text.replace(/\*\*(.*?)\*\*/g, "$1"); // Keeps only the inner text and removes the ** markers
+
+        // Display plain text without any bold tags
+        if (index < text.length) {
+            $('#result').html($('#result').html() + text[index]);
+            index++;
+            scrollToBottom(); // Scroll to the bottom as new content is added
+            setTimeout(function() {
+                animateText(text, index);
+            }, 10);
+        }
+    }
+
+    function showCopyIcon() {
+        $('.copy-icon').css('opacity', 1);
+    }
+
+    // Function to copy response text to clipboard
+    function copyContent() {
+        var text = $('#result').text().trim();
+        var tempInput = $('<input>');
+        $('body').append(tempInput);
+        tempInput.val(text).select();
+        document.execCommand('copy');
+        tempInput.remove();
+        $('.copy-icon').addClass('copied clicked');
+        setTimeout(function() {
+            $('.copy-icon').removeClass('clicked');
+        }, 500);
+    }
+
+    function downloadContent(format) {
+        var text = $('#result').text().trim();
+        var fileName = 'generated_content';
+
+        if (format === 'words') {
+            downloadTextFile(text, fileName + '.doc', 'application/msword');
+        } else if (format === 'docs') {
+            downloadTextFile(text, fileName + '.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        } else if (format === 'pdf') {
+            var element = document.getElementById('result');
+            html2pdf().from(element).save(fileName + '.pdf');
+        }
+    }
+
+    function downloadTextFile(content, fileName, contentType) {
+        var blob = new Blob([content], { type: contentType });
+
+        if (navigator.msSaveBlob) {
+            navigator.msSaveBlob(blob, fileName);
+        } else {
+            var link = document.createElement('a');
+            if (link.download !== undefined) {
+                var url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', fileName);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+    }
+});
+
+    </script>
+    
+</head>
+
+<body>
+    <!--::header part start::-->
+    <header class="main_menu home_menu">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-12">
+                    <nav class="navbar navbar-expand-lg navbar-light">
+                        <a class="navbar-brand" href="index.html">
+                             <!-- <img src="img/logo.png" alt="logo">  -->
+                             CivicaAI
+                            </a>
+                        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                            data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+
+                        <div class="collapse navbar-collapse main-menu-item justify-content-end"
+                            id="navbarSupportedContent">
+                            <ul class="navbar-nav align-items-center">
+                                <li class="nav-item active">
+                                    <a class="nav-link" href="index.html">Home</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="about.html">About</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="cource.html">Services</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="blog.html">Policies</a>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="blog.html" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Languages
+                                    </a>
+                                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                        <a class="dropdown-item" href="hausa.html">Hausa</a>
+                                        <a class="dropdown-item" href="elements.html">Yoruba</a>
+                                        <a class="dropdown-item" href="elements.html">Igbo</a>
+                                    </div>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="contact.html">Contact</a>
+                                </li>
+                                <li class="d-none d-lg-block">
+                                    <a class="btn_1" href="#">Contact Us</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- Header part end-->
+<br><br><br><br><br>
+    <!-- upcoming_event part start-->
+   <!-- Start of Main Section -->
+ 
+
+
+<div class="container w3-center" style="width: 80%;  display: flex; justify-content: center;">
+    <div class="content-container" style="width: 100%;">
+        <form method="post" style="text-align: center;">
+            <label class="w3-bold" style="font-size: 20px;">Ask Your Questions</label>
+            <div style="display: flex; justify-content: center; align-items: center;">
+               
+                <input type="text" class="w3-input" style="height: 40px; width: 70%; margin-right: 10px;" name="prompt"  autocomplete="off">
+                <input type="submit" value="Submit" class="btn_1" style="padding: 5px;">
+            </div>
+        </form>
+
+        
+        <div class="result-container" style="text-align: center; margin-top: 20px;">
+            <div id="result" style="height: 300px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; width: 100%;"></div>
+            <span class="copy-icon" onclick="copyContent()" title="Copy to Clipboard" style="cursor: pointer; display: inline-block; margin-top: 10px;">&#128203;</span>
+        </div>
+        <div class="download-buttons" style="text-align: center; margin-top: 20px;">
+            <button id="download-words" class="btn_1" style="margin: 5px;">Download as .doc</button>
+            <button id="download-docs" class="btn_1" style="margin: 5px;">Download as .docx</button>
+            <button id="download-pdf" class="btn_1" style="margin: 5px;">Download as .pdf</button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- jquery -->
+<script src="{{ url_for('static', filename='js/jquery-1.12.1.min.js') }}"></script>
+<!-- popper js -->
+<script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
+<!-- bootstrap js -->
+<script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+<!-- easing js -->
+<script src="{{ url_for('static', filename='js/jquery.magnific-popup.js') }}"></script>
+<!-- swiper js -->
+<script src="{{ url_for('static', filename='js/swiper.min.js') }}"></script>
+<!-- masonry js -->
+<script src="{{ url_for('static', filename='js/masonry.pkgd.js') }}"></script>
+<!-- owl carousel js -->
+<script src="{{ url_for('static', filename='js/owl.carousel.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/jquery.nice-select.min.js') }}"></script>
+<!-- slick js -->
+<script src="{{ url_for('static', filename='js/slick.min.js') }}"></script>
+<!-- counterup js -->
+<script src="{{ url_for('static', filename='js/jquery.counterup.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/waypoints.min.js') }}"></script>
+<!-- custom js -->
+<script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+import os
+from flask import Flask, request, render_template, jsonify
+from datetime import datetime
+from dotenv import load_dotenv
+
+# Import necessary libraries for OpenAI, Pinecone, and LangChain
+from openai import OpenAI
+from pinecone import Pinecone
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.vectorstores import Pinecone as LangchainPinecone
+from langchain.chat_models import ChatOpenAI
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.prompts import ChatPromptTemplate
+from langchain.chains import create_retrieval_chain
+from langchain_community.retrievers import TavilySearchAPIRetriever
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+import groq
+
+
+# Load environment variables for API keys
+load_dotenv()
+openai_api_key = os.getenv("OPENAI_API_KEY")
+tavily_api_key = os.getenv("TAVILY_API_KEY")
+
+# Initialize the Flask application
+app = Flask(__name__)
+
+
+# ---------- Combined Routes ---------- #
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/chatbot')
+def chatbot():
+    return render_template('chatbot.html')
+
+@app.route('/legal')
+def legal():
+    return render_template('legal.html')
+
+@app.route('/civic')
+def civic():
+    return render_template('civic.html')
+
+# ---------- Part 1: AI Lawyer Integration ---------- #
+# Configure Pinecone client for AI Lawyer
+pinecone_api_key = "683ea2cd-f7bb-4e0b-8b15-e58dea45c7e8"
+index_name = "ailawyer"
+model_name = 'text-embedding-ada-002'
+pc = Pinecone(api_key=pinecone_api_key)
+index = pc.Index(index_name)
+embed = OpenAIEmbeddings(model=model_name, openai_api_key=openai_api_key)
+vectorstore = LangchainPinecone(index, embed.embed_query, "text")
+
+# Create legal advice chain for AI Lawyer
+legal_prompt = ChatPromptTemplate.from_template("""
+You are an AI lawyer specializing in Nigerian law, including the Nigerian Constitution and all relevant statutes.
+Your task is to provide accurate and thorough legal advice, opinions, and potential strategies to address the user's legal challenges.
+Always refer to the relevant sections of the law and provide a clear explanation of the legal context.
+If applicable, suggest the best alternative approaches and ways to potentially win the case.
+
+<context>
+{context}
+</context>
+
+Question: {input}
+Based on the Nigerian Constitution and laws, here is your detailed answer:
+""")
+
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
+document_chain = create_stuff_documents_chain(llm, legal_prompt)
+retriever = vectorstore.as_retriever(search_type="mmr")
+retrieval_chain = create_retrieval_chain(retriever, document_chain)
+
+# ---------- Part 2: CivicaAI Integration ---------- #
+# Setup Tavily Retriever for civic information
+civic_retriever = TavilySearchAPIRetriever(k=5)  # Retrieve top 3 relevant documents
+
+# Define a custom prompt for CivicaAI with a focus on civic questions only
+civic_prompt = ChatPromptTemplate.from_template("""
+You are CivicaAI, a civic information assistant focused exclusively on answering questions related to civic issues, governance, public services, Nigerian constitutional rights, and public policies.
+
+If the user's question is unrelated to civic topics, politely inform them that you only respond to questions on civic matters and suggest rephrasing their question.
+
+Context: {context}
+
+Question: {question}
+
+Provide concise, accurate, and helpful responses for civic-related topics only.
+""")
+
+# Use a separate language model for CivicaAI response generation
+civic_llm = ChatOpenAI(model="gpt-4o-mini", openai_api_key=openai_api_key)
+
+# Function to format the retrieved documents into readable strings
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+# Create the processing chain with retriever and LLM for CivicaAI
+civic_chain = (
+    {"context": civic_retriever | format_docs, "question": RunnablePassthrough()}  # Process input and context
+    | civic_prompt  # Use the custom prompt
+    | civic_llm  # Generate responses using the language model
+    | StrOutputParser()  # Parse the model's output into a string
+)
+
+
+# Set up your Groq API key
+GROQ_API_KEY = "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"
+client = groq.Groq(api_key=GROQ_API_KEY)
+
+# Function to provide civic information in Nigeria using Groq
+def civic_information_assistant(text, model="llama-3.1-70b-versatile", temperature=0.7, max_tokens=1000):
+    prompt = f"Provide civic information for the following query: \"{text}\" related to Nigerian law, rights, governance, or policies."
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are an expert civic information assistant focused solely on providing accurate and concise information about Nigerian laws, civic rights, governance, and public policies. If a user's query is unrelated to civic topics, inform them politely and suggest they rephrase their question to focus on civic matters."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=temperature,
+        max_tokens=max_tokens
+    )
+    civic_info = response.choices[0].message.content.strip()
+    return civic_info
+
+
+# Define the legal query endpoint to handle legal-related user queries
+@app.route('/legal_query', methods=['POST'])
+def legal_query():
+    data = request.get_json()
+    user_query = data.get('query')
+    response = retrieval_chain.invoke({"input": user_query})
+    return jsonify({'result': response["answer"]})
+
+# # Define the civic query endpoint to handle civic-related user queries
+# @app.route('/civic_query', methods=['POST'])
+# def civic_query():
+#     data = request.get_json()
+#     user_query = data.get('query')
+#     response = civic_chain.invoke(user_query)
+#     return jsonify({"response": response})
+
+# Route for processing civic queries
+@app.route('/civic_query', methods=['POST'])
+def civic_query():
+    # Get JSON data from the request
+    data = request.get_json()
+    user_query = data.get('query')  # Extract the 'query' field from the JSON
+    
+    # Process the query using the civic_chain function
+    response = civic_information_assistant(user_query)
+    
+    # Return the result as a JSON response
+    return jsonify({"response": response})
+
+# Start the Flask application
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+    <!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Chatbot</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700,300' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.2/css/font-awesome.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
+    <style>
+        /* Loader CSS */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 15px;
+            height: 15px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spacer {
+        width: 10px; /* Adjust the width of tab space */
+        display: inline-block;
+    }
+    </style>
+</head>
+
+<body>
+    <div id="frame">
+        <!-- Sidebar Content -->
+        <div id="sidepanel">
+            <div id="profile">
+                <div class="wrap">
+                    <img id="profile-img" src="{{ url_for('static', filename='magaga.jpeg') }}" class="online" alt="" />
+                    <p>User</p>
+                </div>
+            </div>
+            <div id="search">
+                <label for=""><i class="fa fa-search" aria-hidden="true"></i></label>
+                <input type="text" placeholder="History ..." />
+            </div>
+            <div id="contacts">
+                <ul>
+                    <li class="contact">
+                        <div class="wrap">
+                            <div class="meta">
+                                <p class="preview" style="font-size: 20px;">Testing</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="contact">
+                        <div class="wrap">
+                            <div class="meta">
+                                <p class="preview" style="font-size: 20px;">Testing</p>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Chat Content -->
+        <div class="content">
+            <div class="contact-profile">
+                <img id="profile-img" src="{{ url_for('static', filename='img/lawyer-icon.jpg') }}" class="online" alt="" />
+                <p>LegalBot</p>
+            </div>
+            <div class="messages">
+                <ul>
+                    <!-- Existing message list -->
+                </ul>
+            </div>
+            <div class="message-input">
+                <div class="wrap">
+                    <input type="text" class="input-message" placeholder="Write your message..." />
+                    <i class="fa fa-paperclip attachment" aria-hidden="true"></i>
+                    <button class="submit"><i class="fa fa-paper-plane" aria-hidden="true"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+
+<script>
+    $(document).ready(function () {
+    // Function to scroll to the bottom of the chat container
+    function scrollToBottom() {
+        $(".messages").stop().animate({ scrollTop: $(".messages")[0].scrollHeight }, 500);
+    }
+
+    scrollToBottom();
+
+    // Function to handle sending a new message
+    function newMessage() {
+        var message = $(".input-message").val().trim();
+        if (message !== '') {
+            $('<li class="sent"><img src="static/magaga.jpeg" alt="" /><p>' + message + '</p></li>').appendTo($('.messages ul'));
+            $(".input-message").val(null);
+            scrollToBottom();
+
+            // AJAX request to Flask backend for response
+            $.ajax({
+                type: 'POST',
+                url: '/legal_query',
+                contentType: 'application/json',
+                data: JSON.stringify({ query: message }),
+                beforeSend: function () {
+                    // Add loader with an empty response bubble
+                    $('<li class="replies"><img src="static/img/lawyer-icon.jpg" alt="" /><p><span class="loader"></span></p></li>').appendTo($('.messages ul'));
+                    scrollToBottom();
+                },
+                success: function (data) {
+                    var response = data.result; // Adjust this based on the actual response structure
+                    $(".replies .loader").remove(); // Remove the loader
+                    
+                    // Replace markdown-style bold text (**text**) with HTML bold tags (<b>text</b>)
+                    response = response.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+
+                    // Call the animateText function with the formatted response
+                    animateText(response, 0);
+                },
+                error: function (error) {
+                    $(".replies .loader").remove(); // Remove the loader in case of error
+                    $(".replies p").last().append("Sorry, an error occurred!");
+                    console.log('Error:', error);
+                }
+            });
+        }
+    }
+
+    // Bind the newMessage function to the button click event
+    $(".submit").click(function () {
+        newMessage();
+    });
+
+    // Trigger message send on Enter key press
+    $(window).on('keydown', function (e) {
+        if (e.which == 13) {
+            newMessage();
+            return false;
+        }
+    });
+
+    // Function to animate text character-by-character
+    function animateText(text, index) {
+        // Use text replacement to handle newlines, tabs, and HTML formatting
+        var formattedText = text.substring(0, index + 1)
+                              .replace(/\n/g, '<br/>') // Replace newlines with <br>
+                              .replace(/\t/g, '<span class="spacer"></span>'); // Replace tabs with spacer
+
+        $(".replies p").last().html(formattedText + '<span aria-hidden="true"></span>'); // Append formatted text with animation cursor
+
+        if (index < text.length) {
+            setTimeout(function () {
+                animateText(text, index + 1);
+                scrollToBottom();
+            }, 20); // Speed of typing animation
+        }
+    }
+});
+
+</script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import os
+import pyttsx3
+import speech_recognition as sr
+from flask import Flask, request, render_template, jsonify
+from dotenv import load_dotenv
+from openai import OpenAI
+from pinecone import Pinecone
+from langchain.embeddings.openai import OpenAIEmbeddings
+from translate import Translator
+from langchain.vectorstores import Pinecone as LangchainPinecone
+from langchain.chat_models import ChatOpenAI
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.prompts import ChatPromptTemplate
+from langchain.chains import create_retrieval_chain
+from langchain_community.retrievers import TavilySearchAPIRetriever
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+import groq
+
+# Load environment variables for API keys
+load_dotenv()
+openai_api_key = os.getenv("OPENAI_API_KEY")
+tavily_api_key = os.getenv("TAVILY_API_KEY")
+
+# Initialize the Flask application
+app = Flask(__name__)
+
+# ---------- Speech-to-Speech Integration ---------- #
+# Initialize pyttsx3 for text-to-speech
+engine = pyttsx3.init()
+
+# Function to handle text-to-speech (TTS)
+def text_to_speech(response_text):
+    engine.say(response_text)
+    engine.runAndWait()
+
+# Function for speech-to-text (STT)
+def speech_to_text():
+    recognizer = sr.Recognizer()
+    mic = sr.Microphone()
+    with mic as source:
+        print("Listening...")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
+    try:
+        print("Recognizing speech...")
+        speech_input = recognizer.recognize_google(audio)
+        return speech_input
+    except sr.UnknownValueError:
+        return "Sorry, I didn't catch that."
+    except sr.RequestError as e:
+        return f"API request failed: {e}"
+
+# Route to handle speech input and convert it to text
+@app.route('/speech_query', methods=['POST'])
+def speech_query():
+    try:
+        # Capture user input via speech
+        user_input = speech_to_text()
+        if not user_input:
+            return jsonify({'error': 'Speech not recognized'}), 400
+
+        # Process the user input (replace this with your chatbot logic)
+        response = f"You said: {user_input}"
+
+        # Convert the chatbot response into speech
+        text_to_speech(response)
+
+        return jsonify({'response': response})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+
+
+# ---------- Combined Routes ---------- #
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/chatbot')
+def chatbot():
+    return render_template('chatbot.html')
+
+@app.route('/legal')
+def legal():
+    return render_template('legal.html')
+
+@app.route('/civic')
+def civic():
+    return render_template('civic.html')
+
+@app.route('/hausa_result')
+def hausa_result():
+    return render_template('civic_hausa.html')
+
+
+
+
+
+
+# ---------- Part 2: Translation and Civic Assistant Integration ---------- #
+# Initialize translators for each language
+hausa_translator = Translator(to_lang="ha")
+igbo_translator = Translator(to_lang="ig")
+yoruba_translator = Translator(to_lang="yo")
+swahili_translator = Translator(to_lang="sw")
+
+# Function to provide civic information in Nigeria using Groq and translate the response
+def civic_information_assistant(text, language, model="llama-3.1-70b-versatile", temperature=0.7, max_tokens=1000):
+    # Simulate civic information response
+    prompt = f"Provide civic information for the following query: '{text}' related to Nigerian law, rights, governance, or policies."
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are an expert civic information assistant focused solely on providing accurate and concise information about Nigerian laws, civic rights, governance, and public policies."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=temperature,
+        max_tokens=max_tokens
+    )
+    civic_info = response.choices[0].message.content.strip()
+
+    # Translate the response based on the selected language
+    if language == 'hausa':
+        translated_civic_info = hausa_translator.translate(civic_info)
+    elif language == 'igbo':
+        translated_civic_info = igbo_translator.translate(civic_info)
+    elif language == 'yoruba':
+        translated_civic_info = yoruba_translator.translate(civic_info)
+    elif language == 'swahili':
+        translated_civic_info = swahili_translator.translate(civic_info)
+    else:
+        translated_civic_info = civic_info  # Default is English
+
+    return translated_civic_info
+
+# ---------- Routes for each language ---------- #
+@app.route('/civic_hausa', methods=['POST'])
+def civic_hausa():
+    data = request.get_json()
+    user_query = data.get('query')
+    response = civic_information_assistant(user_query, 'hausa')
+    return jsonify({'response': response})
+
+@app.route('/civic_igbo', methods=['POST'])
+def civic_igbo():
+    data = request.get_json()
+    user_query = data.get('query')
+    response = civic_information_assistant(user_query, 'igbo')
+    return jsonify({'response': response})
+
+@app.route('/civic_yoruba', methods=['POST'])
+def civic_yoruba():
+    data = request.get_json()
+    user_query = data.get('query')
+    response = civic_information_assistant(user_query, 'yoruba')
+    return jsonify({'response': response})
+
+@app.route('/civic_swahili', methods=['POST'])
+def civic_swahili():
+    data = request.get_json()
+    user_query = data.get('query')
+    response = civic_information_assistant(user_query, 'swahili')
+    return jsonify({'response': response})
+
+# ---------- Part 3: Groq Integration for Civic and Legal Queries ---------- #
+GROQ_API_KEY = "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"
+client = groq.Groq(api_key=GROQ_API_KEY)
+
+# # Function to provide civic information in Nigeria using Groq
+# def civic_information_assistant(text, model="llama-3.1-70b-versatile", temperature=0.7, max_tokens=1000):
+#     prompt = f"Provide civic information for the following query: \"{text}\" related to Nigerian law, rights, governance, or policies."
+#     response = client.chat.completions.create(
+#         model=model,
+#         messages=[
+#             {"role": "system", "content": "You are an expert civic information assistant focused solely on providing accurate and concise information about Nigerian laws, civic rights, governance, and public policies. If a user's query is unrelated to civic topics, inform them politely and suggest they rephrase their question to focus on civic matters."},
+#             {"role": "user", "content": prompt}
+#         ],
+#         temperature=temperature,
+#         max_tokens=max_tokens
+#     )
+#     civic_info = response.choices[0].message.content.strip()
+#     return civic_info
+
+# Function to provide legal advice using Groq
+def legal_information_assistant(text, model="llama-3.1-70b-versatile", temperature=0.7, max_tokens=1000):
+    prompt = f"""
+    You are an AI lawyer specializing in Nigerian law, including the Nigerian Constitution and all relevant statutes.
+    Your task is to provide accurate and thorough legal advice, opinions, and potential strategies to address the user's legal challenges.
+    Always refer to the relevant sections of the law and provide a clear explanation of the legal context.
+    If applicable, suggest the best alternative approaches and ways to potentially win the case.
+
+    Question: \"{text}\"
+    Based on the Nigerian Constitution and laws, here is your detailed answer:
+    """
+    
+    # Call the Groq API to generate a response
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert AI legal assistant providing advice based on Nigerian law, "
+                    "including the Constitution and statutes. "
+                    "You must never mention or imply any knowledge cutoff date. "
+                    "If the user's question is unrelated to Nigerian law or legal matters apart from greetings, politely inform them "
+                    "that you only respond to questions related to Nigerian legal matters, the Constitution, and statutes. "
+                    "Suggest that they rephrase their question to focus on legal issues if necessary."
+                    "If the user's input is a greeting, respond with a greeting and ask how you can assist them with legal or constitutional matters."
+                )
+            },
+            {"role": "user", "content": prompt}
+        ],
+        temperature=temperature,
+        max_tokens=max_tokens
+    )
+    
+    # Get the legal advice from the response
+    legal_info = response.choices[0].message.content.strip()
+    return legal_info
+
+# Define the legal query endpoint to handle legal-related user queries
+@app.route('/legal_query', methods=['POST'])
+def legal_query():
+    try:
+        data = request.get_json()
+        user_query = data.get('query')  # Extract user query from the request
+        
+        if not user_query:
+            return jsonify({'error': 'No query provided'}), 400
+        
+        # Call the legal information assistant function with the user's query
+        response = legal_information_assistant(user_query)
+        
+        return jsonify({'result': response})  # Return the response to the frontend
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# # Route for processing civic queries
+# @app.route('/civic_query', methods=['POST'])
+# def civic_query():
+#     # Get JSON data from the request
+#     data = request.get_json()
+#     user_query = data.get('query')  # Extract the 'query' field from the JSON
+    
+#     # Process the query using the civic_chain function
+#     response = civic_information_assistant(user_query)
+    
+#     # Return the result as a JSON response
+#     return jsonify({"response": response})
+
+@app.route('/civic_query', methods=['POST'])
+def civic_query():
+    try:
+        data = request.get_json()
+        user_query = data.get('query')  # Extract user query from the request
+        
+        if not user_query:
+            return jsonify({'error': 'No query provided'}), 400
+        
+        # Call the civic information assistant in English
+        response = civic_information_assistant(user_query, 'english')  # Default language is English
+        
+        return jsonify({'response': response})  # Return the response to the frontend
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Start the Flask application
+if __name__ == '__main__':
+    app.run(debug=True)
